@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ASIN Comparison Tool</title>
+  <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> -->
 
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
@@ -15,6 +16,13 @@
   <!-- Custom CSS -->
   <style>
     /* Update the background color and text color of the jumbotron */
+    .highlight-positive {
+      background-color: rgb(54, 172, 54);
+    }
+
+    .highlight-negative {
+      background-color: rgb(243, 158, 158);
+    }
     .jumbotron {
       background-color: #f8f9fa;
       color: #333;
@@ -73,8 +81,24 @@
   
     /* Add a subtle highlight to the table rows */
     .highlight {
-      background-color: #ffff99;
+      background-color: #38ba24;
     }
+
+    .positive-tweet,
+    .negative-tweet {
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+    }
+  
+    .positive-tweet.active,
+    .negative-tweet.active {
+      opacity: 1;
+    }
+    
+    .emoji {
+      margin-left: 5px;
+    }
+    
   </style>
 </head>
 
@@ -145,6 +169,16 @@
           </table>
         </div>
       </div>
+      <div id="reviewsWidget">
+        <div class="container">
+          <p>Generates ad title based on your reviews and competitor reviews</p>
+          <button id="clickbaitButton" class="btn btn-primary">Generate Ad Title</button> 
+          <br>
+          <br>
+          <p id="marketingStrategy"></p>
+        </div>
+        <h2>Twitter Real-time Reviews</h2>
+      </div>
       <div class="row mt-5">
         <div class="col-md-12">
           <h2>Realtime market sentiments</h2>
@@ -153,20 +187,17 @@
               style="width: 0%"></div>
           </div>
         </div>
-      </div>
-      <div id="reviewsWidget">
-        <h2>Twitter Real-time Reviews</h2>
       </div>      
       <div class="row mt-5">
         <div class="col-md-6">
           <canvas id="realTimeChart"></canvas>
         </div>
         <div class="col-md-6">
-          <div id="tweetsWidget" class="card">
-            <div class="card-body">
-              <h5 class="card-title">Trending Tweets</h5>
-              <p class="card-text">Trending tweets related to the selected ASINs will be displayed here.</p>
-            </div>
+            <h2>Positive Tweets</h2>
+            <div id="positiveTweets"></div>
+            
+            <h2>Negative Tweets</h2>
+            <div id="negativeTweets"></div>
           </div>
         </div>
       </div>
@@ -296,21 +327,23 @@
   const competitorAsinFashionElement = document.getElementById('competitorAsinFashion');
 
   const keyword = 'comfort';
+  const keywordFashion = 'trendy';
   const negativeKeyword = 'Not recommended';
+  const negativeKeywordFashion = 'moderate';
 
   const myAsinReview = 'Really comfortable and snug fit. Great for casual usage like gym, casual running, etc. Go with better ones for serious marathon running.';
   const competitorAsinReview = 'The comfort level is average. Suitable for light workouts and everyday use. Not recommended for long-distance running.';
-
-  myAsinComfortElement.innerHTML = myAsinReview.replace(new RegExp(keyword, 'gi'), match => `<span class="highlight">${match}</span>`);
-  competitorAsinComfortElement.innerHTML = competitorAsinReview.replace(new RegExp(keyword, 'gi'), match => `<span class="highlight">${match}</span>`);
-
   const myAsinFashionReview = 'Stylish and trendy design. Perfect for fashion-forward individuals. It complements various outfits and occasions.';
   const competitorAsinFashionReview = 'The fashion appeal is moderate. It has a simple and classic design suitable for casual and everyday wear.';
 
-  myAsinFashionElement.innerHTML = myAsinFashionReview.replace(new RegExp(keyword, 'gi'), match => `<span class="highlight">${match}</span>`);
-  competitorAsinFashionElement.innerHTML = competitorAsinFashionReview.replace(new RegExp(keyword, 'gi'), match => `<span class="highlight">${match}</span>`);
+  myAsinComfortElement.innerHTML = myAsinReview.replace(new RegExp('comfortable', 'gi'), match => `<span class="highlight">${match}</span>`);
+  competitorAsinComfortElement.innerHTML = competitorAsinReview.replace(new RegExp('average', 'gi'), match => `<span class="negative-highlight">${match}</span>`);
 
-  competitorAsinComfortElement.innerHTML = competitorAsinComfortElement.innerHTML.replace(new RegExp(negativeKeyword, 'gi'), match => `<span class="negative-highlight">${match}</span>`);
+
+  myAsinFashionElement.innerHTML = myAsinFashionReview.replace(new RegExp('trendy', 'gi'), match => `<span class="highlight">${match}</span>`);
+
+  competitorAsinFashionElement.innerHTML = competitorAsinFashionReview.replace(new RegExp('moderate', 'gi'), match => `<span class="negative-highlight">${match}</span>`);
+
 }
 
 
@@ -382,27 +415,6 @@
         chart.update();
       }, 2000);
     }
-
-    // Function to fetch and display trending tweets
-    function displayTrendingTweets() {
-      const tweetsWidgetElement = document.getElementById('tweetsWidget');
-
-      // Fetch trending tweets using an API or library of your choice
-      const tweets = [
-        'Check out the new SpinMaster toy collection! They have the most innovative and fun toys for kids. #awesome #spinmaster',
-        'SpinMaster is killing it with their latest toy release. My kids can\'t get enough of them!',
-        'I just bought a SpinMaster toy for my niece, and she absolutely loves it. Great quality and entertainment value.',
-      ];
-
-      const tweetsList = document.createElement('ul');
-      tweets.forEach(tweet => {
-        const listItem = document.createElement('li');
-        listItem.textContent = tweet;
-        tweetsList.appendChild(listItem);
-      });
-
-      tweetsWidgetElement.appendChild(tweetsList);
-    }
     document.getElementById('compareBtn').addEventListener('click', () => {
   resetComparisonTable();
   resetCharts();
@@ -429,17 +441,90 @@ function resetCharts() {
   Chart.getChart(realTimeChartElement)?.destroy();
   Chart.getChart(tweetsWidget)?.destroy();
 }
-// Dummy reviews data
-const dummyReviews = [
-  { rating: 5, review: 'Great product! Highly recommended.' },
-  { rating: 4, review: 'Good quality, but could be better.' },
-  { rating: 3, review: 'Average product. Nothing special.' },
-  { rating: 2, review: 'Not satisfied with the purchase.' },
-  { rating: 1, review: 'Terrible product. Avoid it at all costs!' }
-];
 
-// Initialize chart
+  
+    function generateAdTitle() {
+      const negativeKeywords = ['average', 'outdated', 'expensive', 'not very durable'];
+      const selectedKeyword = getRandomNegativeKeyword(negativeKeywords);
+      const adTitle = `"Unleash Unmatched Comfort and Style! Conquer Long-Distance Runs with Ease Unlike Competitor ASIN!"`;
+      const clickBaitTitles = [
+        "Unveiling the Secret: Why Our Shoes Outlast the Competition!",
+        "Say Goodbye to Discomfort: Experience Unmatched Comfort with Our Shoes!",
+        "Don't Settle for Less: Upgrade Your Shoe Game with Our Revolutionary Design!",
+        "Unlock Your Potential: Discover the Perfect Shoes for Marathon Runners!",
+        "Kick Start Your Fitness Journey: Get the Shoes That Are Built for Results!",
+        "The Ultimate Shoe Makeover: Transform Your Style with Our Fashion-Forward Collection!",
+        "Shatter Your Limits: Step into Performance-Enhancing Shoes That Ignite Your Passion!",
+        "Leave Your Worries Behind: Say Hello to Durability with Our Long-Lasting Shoes!",
+        "Revolutionize Your Workout: Embrace Unparalleled Comfort and Support in Every Step!",
+        "Game-Changing Footwear: Step Up Your Performance with Our Cutting-Edge Shoes!"
+      ];
 
+      const randomIndex = Math.floor(Math.random() * clickBaitTitles.length);
+      const clickBaitTitle = clickBaitTitles[randomIndex];
+      document.getElementById('marketingStrategy').textContent = clickBaitTitle;
+    }
+  
+    function getRandomNegativeKeyword(negativeKeywords) {
+      return negativeKeywords[Math.floor(Math.random() * negativeKeywords.length)];
+    }
+  
+    const clickbaitButton = document.getElementById('clickbaitButton');
+    clickbaitButton.addEventListener('click', generateAdTitle);
+    const tweetPool = [
+      { text: "Check out the latest shoe collection from XYZ brand. They have the trendiest designs for every occasion!", sentiment: "positive" },
+      { text: "These new shoes are a game-changer! They provide incredible comfort and support. Highly recommended!", sentiment: "positive" },
+      { text: "Just got my hands on the most stylish pair of shoes. They are perfect for stepping up my fashion game!", sentiment: "positive" },
+      { text: "I'm really disappointed with these shoes. They started falling apart after just a few wears.", sentiment: "negative" },
+      { text: "These shoes are so uncomfortable! I regret buying them.", sentiment: "negative" },
+      { text: "The design of these shoes is outdated. They look nothing like the pictures.", sentiment: "negative" },
+      // Add more tweets to the pool
+    ];
+    
+    const positiveTweetsContainer = document.getElementById('positiveTweets');
+    const negativeTweetsContainer = document.getElementById('negativeTweets');
+    let currentPositiveIndex = -1;
+    let currentNegativeIndex = -1;
+    
+    function loadTweets() {
+      const positiveTweets = tweetPool.filter(tweet => tweet.sentiment === "positive");
+      const negativeTweets = tweetPool.filter(tweet => tweet.sentiment === "negative");
+      
+      currentPositiveIndex = getNextIndex(currentPositiveIndex, positiveTweets.length);
+      currentNegativeIndex = getNextIndex(currentNegativeIndex, negativeTweets.length);
+      
+      const positiveTweet = positiveTweets[currentPositiveIndex];
+      const negativeTweet = negativeTweets[currentNegativeIndex];
+      
+      const positiveTweetElement = createTweetElement(positiveTweet, 'positive-tweet', '&#128515;');
+      const negativeTweetElement = createTweetElement(negativeTweet, 'negative-tweet', '&#128542;');
+      
+      positiveTweetsContainer.innerHTML = '';
+      negativeTweetsContainer.innerHTML = '';
+      
+      positiveTweetsContainer.appendChild(positiveTweetElement);
+      negativeTweetsContainer.appendChild(negativeTweetElement);
+      
+      setTimeout(() => {
+        positiveTweetElement.classList.add('active');
+        negativeTweetElement.classList.add('active');
+      }, 100);
+    }
+    
+    function createTweetElement(tweet, tweetClass, emoji) {
+      const tweetElement = document.createElement('p');
+      tweetElement.classList.add(tweetClass);
+      tweetElement.innerHTML = tweet.text + ' <span class="emoji">' + emoji + '</span>';
+      return tweetElement;
+    }
+    
+    function getNextIndex(currentIndex, arrayLength) {
+      return (currentIndex + 1) % arrayLength;
+    }
+    
+    
+    setInterval(loadTweets, 5000);
+ 
 
 
 function fetchData() {
@@ -448,8 +533,10 @@ function fetchData() {
   initializeLineChart();
   startSentimentGraph();
   initializeRealTimeChart();
-  displayTrendingTweets();
-  updateReviewsWidget();
+  loadPositiveTweets();
+  loadNegativeTweets();
+  loadTweets();
+
 
 }
   </script>
